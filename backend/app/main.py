@@ -1,10 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import logging
+
+from app.core.config import settings
+from app.core.database import init_db
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting AI Trading Platform...")
+    await init_db()
+    logger.info("Database tables created!")
+    yield
+    logger.info("Shutting down...")
+
 
 app = FastAPI(
-    title="AI Trading Platform",
-    version="1.0.0",
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
     docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -15,6 +35,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "message": "AI Trading Platform is running!"}
+    return {
+        "status": "healthy",
+        "message": "AI Trading Platform is running!",
+        "version": settings.APP_VERSION
+    }
