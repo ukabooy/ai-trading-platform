@@ -10,7 +10,6 @@ export default function Home() {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -24,7 +23,7 @@ export default function Home() {
       })
       const res = await axios.post(`${API_URL}/auth/login`, { email, password })
       setUser(res.data.user)
-      setToken(res.data.access_token)
+      localStorage.setItem('token', res.data.access_token)
       setView('dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed')
@@ -39,7 +38,7 @@ export default function Home() {
     try {
       const res = await axios.post(`${API_URL}/auth/login`, { email, password })
       setUser(res.data.user)
-      setToken(res.data.access_token)
+      localStorage.setItem('token', res.data.access_token)
       setView('dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
@@ -49,7 +48,7 @@ export default function Home() {
 
   const handleLogout = () => {
     setUser(null)
-    setToken('')
+    localStorage.removeItem('token')
     setView('login')
   }
 
@@ -83,6 +82,10 @@ export default function Home() {
             <p>✅ Your account is live and connected to the database!</p>
             <p>🔐 You're authenticated with a secure JWT token</p>
           </div>
+
+          <a href="/signals" style={styles.signalsBtn}>
+            ⚡ View AI Signals
+          </a>
 
           <button onClick={handleLogout} style={styles.logoutBtn}>
             Logout
@@ -257,6 +260,22 @@ const styles = {
     fontSize: '13px',
     lineHeight: '1.8',
   },
+  signalsBtn: {
+    display: 'block',
+    width: '100%',
+    padding: '12px',
+    background: '#6366f1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '16px',
+    textAlign: 'center',
+    textDecoration: 'none',
+    boxSizing: 'border-box',
+  },
   logoutBtn: {
     width: '100%',
     padding: '12px',
@@ -266,6 +285,6 @@ const styles = {
     borderRadius: '8px',
     fontSize: '14px',
     cursor: 'pointer',
-    marginTop: '16px',
+    marginTop: '12px',
   },
 }
