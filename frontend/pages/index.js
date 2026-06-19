@@ -83,7 +83,10 @@ export default function Home() {
             <p>🔐 You're authenticated with a secure JWT token</p>
           </div>
 
-          <a href="/signals" style={styles.signalsBtn}>
+          <a href="/markets" style={{...styles.signalsBtn, marginTop: '16px'}}>
+            📈 View Live Markets
+          </a>
+          <a href="/signals" style={{...styles.signalsBtn, marginTop: '10px'}}>
             ⚡ View AI Signals
           </a>
 
