@@ -8,6 +8,7 @@ from app.core.database import init_db
 from app.api.routers.auth import router as auth_router
 from app.api.routers.signals import router as signals_router
 from app.api.routers.trades import router as trades_router
+from app.api.routers.market import router as market_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(signals_router, prefix="/api")
 app.include_router(trades_router, prefix="/api")
+app.include_router(market_router, prefix="/api")
 
 
 @app.get("/api/health")
