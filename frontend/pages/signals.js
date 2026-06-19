@@ -8,7 +8,9 @@ export default function Signals() {
   const [symbol, setSymbol] = useState('BTCUSDT')
   const [signals, setSignals] = useState([])
   const [loading, setLoading] = useState(false)
+  const [executing, setExecuting] = useState(null)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token')
@@ -45,6 +47,32 @@ export default function Signals() {
     setLoading(false)
   }
 
+  const executeTrade = async (sig) => {
+    setExecuting(sig.id)
+    setError('')
+    setSuccess('')
+    try {
+      const direction = sig.action === 'buy' ? 'long' : 'short'
+      const quantity = parseFloat((100 / sig.entry_price).toFixed(6))
+      await axios.post(
+        `${API_URL}/trades`,
+        {
+          symbol: sig.symbol,
+          direction,
+          quantity,
+          entry_price: sig.entry_price,
+          stop_loss: sig.stop_loss,
+          take_profit: sig.take_profit,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setSuccess(`Trade executed! View it in My Trades.`)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to execute trade')
+    }
+    setExecuting(null)
+  }
+
   if (!token) {
     return (
       <div style={styles.container}>
@@ -59,7 +87,10 @@ export default function Signals() {
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>⚡ AI Trading Signals</h1>
-        <a href="/" style={styles.backLink}>← Back to Dashboard</a>
+        <div style={styles.navRow}>
+          <a href="/" style={styles.backLink}>← Dashboard</a>
+          <a href="/trades" style={styles.backLink}>My Trades →</a>
+        </div>
 
         <div style={styles.form}>
           <select
@@ -78,6 +109,7 @@ export default function Signals() {
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
+        {success && <p style={styles.success}>{success}</p>}
 
         <div style={styles.signalsList}>
           {signals.length === 0 && (
@@ -106,6 +138,15 @@ export default function Signals() {
                 </div>
               </div>
               {sig.reasoning && <p style={styles.reasoning}>{sig.reasoning}</p>}
+              {sig.action !== 'hold' && (
+                <button
+                  onClick={() => executeTrade(sig)}
+                  disabled={executing === sig.id}
+                  style={styles.executeBtn}
+                >
+                  {executing === sig.id ? 'Executing...' : '▶ Execute Paper Trade'}
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -116,24 +157,16 @@ export default function Signals() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
-    background: '#0a0a0f',
-    display: 'flex',
-    justifyContent: 'center',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '20px',
+    minHeight: '100vh', background: '#0a0a0f', display: 'flex', justifyContent: 'center',
+    fontFamily: 'system-ui, sans-serif', padding: '20px',
   },
   card: {
-    background: '#111118',
-    border: '1px solid #2a2a3a',
-    borderRadius: '16px',
-    padding: '24px',
-    width: '100%',
-    maxWidth: '480px',
-    height: 'fit-content',
+    background: '#111118', border: '1px solid #2a2a3a', borderRadius: '16px',
+    padding: '24px', width: '100%', maxWidth: '480px', height: 'fit-content',
   },
   title: { color: '#f1f5f9', fontSize: '22px', margin: '0 0 8px 0' },
-  backLink: { color: '#6366f1', fontSize: '13px', textDecoration: 'none', display: 'block', marginBottom: '20px' },
+  navRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '20px' },
+  backLink: { color: '#6366f1', fontSize: '13px', textDecoration: 'none' },
   form: { display: 'flex', gap: '8px', marginBottom: '16px' },
   select: {
     flex: 1, padding: '10px', background: '#1a1a24', border: '1px solid #2a2a3a',
@@ -143,7 +176,8 @@ const styles = {
     padding: '10px 16px', background: '#6366f1', color: 'white', border: 'none',
     borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
   },
-  error: { color: '#ef4444', fontSize: '13px' },
+  error: { color: '#ef4444', fontSize: '13px', marginBottom: '12px' },
+  success: { color: '#10b981', fontSize: '13px', marginBottom: '12px' },
   empty: { color: '#6b7280', textAlign: 'center', padding: '20px' },
   signalsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
   signalCard: {
@@ -155,5 +189,10 @@ const styles = {
   signalGrid: { display: 'flex', gap: '20px', marginBottom: '10px' },
   label: { color: '#6b7280', fontSize: '11px', margin: '0 0 2px 0' },
   value: { color: '#f1f5f9', fontSize: '14px', fontWeight: '600', margin: 0 },
-  reasoning: { color: '#94a3b8', fontSize: '12px', lineHeight: '1.5', margin: 0 },
+  reasoning: { color: '#94a3b8', fontSize: '12px', lineHeight: '1.5', margin: '0 0 10px 0' },
+  executeBtn: {
+    width: '100%', padding: '10px', background: 'rgba(99,102,241,0.15)', color: '#6366f1',
+    border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', fontSize: '13px',
+    fontWeight: '600', cursor: 'pointer',
+  },
 }
