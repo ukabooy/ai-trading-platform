@@ -89,6 +89,9 @@ export default function Home() {
           <a href="/signals" style={{...styles.signalsBtn, marginTop: '10px'}}>
             ⚡ View AI Signals
           </a>
+          <a href="/settings" style={{...styles.signalsBtn, marginTop: '10px', background: 'transparent', border: '1px solid #2a2a3a', color: '#94a3b8'}}>
+            ⚙️ Settings
+          </a>
 
           <button onClick={handleLogout} style={styles.logoutBtn}>
             Logout
