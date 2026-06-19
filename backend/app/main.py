@@ -6,6 +6,7 @@ import logging
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.routers.auth import router as auth_router
+from app.api.routers.signals import router as signals_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/api")
+app.include_router(signals_router, prefix="/api")
 
 
 @app.get("/api/health")
