@@ -15,6 +15,7 @@ export default function Settings() {
 
   const [totpEnabled, setTotpEnabled] = useState(false)
   const [qrCode, setQrCode] = useState('')
+  const [setupSecret, setSetupSecret] = useState('')
   const [totpInput, setTotpInput] = useState('')
   const [twoFaError, setTwoFaError] = useState('')
 
@@ -74,6 +75,7 @@ export default function Settings() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setQrCode(res.data.qr_code)
+      setSetupSecret(res.data.secret)
     } catch (err) {
       setTwoFaError(err.response?.data?.detail || 'Failed to setup 2FA')
     }
@@ -197,6 +199,14 @@ export default function Settings() {
                       alt="2FA QR"
                       style={{width: '160px', height: '160px', display: 'block', margin: '12px auto', borderRadius: '8px'}}
                     />
+                    <p style={{...styles.smallText, marginTop: '12px'}}>Or enter this code manually in your app:</p>
+                    <div style={{
+                      background: '#1a1a24', padding: '10px', borderRadius: '8px',
+                      textAlign: 'center', fontFamily: 'monospace', fontSize: '13px',
+                      color: '#6366f1', letterSpacing: '2px', marginBottom: '12px', wordBreak: 'break-all'
+                    }}>
+                      {setupSecret}
+                    </div>
                     <input
                       style={{...styles.input, textAlign: 'center', letterSpacing: '4px'}}
                       placeholder="000000"
