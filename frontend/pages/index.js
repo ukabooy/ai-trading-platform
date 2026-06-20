@@ -131,6 +131,9 @@ export default function Home() {
           <a href="/trades" style={{...styles.signalsBtn, marginTop: '10px'}}>
             💼 My Trades
           </a>
+          <a href="/alerts" style={{...styles.signalsBtn, marginTop: '10px'}}>
+            🔔 Price Alerts
+          </a>
           <a href="/settings" style={{...styles.signalsBtn, marginTop: '10px', background: 'transparent', border: '1px solid #2a2a3a', color: '#94a3b8'}}>
             ⚙️ Settings
           </a>
