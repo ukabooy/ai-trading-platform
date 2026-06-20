@@ -7,13 +7,12 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/market", tags=["Market Data"])
 
-ID_MAP = {
-    "bitcoin": "BTCUSDT",
-    "ethereum": "ETHUSDT",
-    "binance-coin": "BNBUSDT",
-    "solana": "SOLUSDT",
-    "cardano": "ADAUSDT",
-    "xrp": "XRPUSDT",
+KRAKEN_MAP = {
+    "XXBTZUSD": "BTCUSDT",
+    "XETHZUSD": "ETHUSDT",
+    "SOLUSD": "SOLUSDT",
+    "ADAUSD": "ADAUSDT",
+    "XXRPZUSD": "XRPUSDT",
 }
 
 
@@ -30,25 +29,24 @@ async def get_tickers():
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            ids = ",".join(ID_MAP.keys())
-            logger.info(f"Fetching CoinCap with ids={ids}")
+            pairs = "BTCUSD,ETHUSD,SOLUSD,ADAUSD,XRPUSD"
+            logger.info(f"Fetching Kraken with pairs={pairs}")
             resp = await client.get(
-                "https://api.coincap.io/v2/assets",
-                params={"ids": ids}
+                "https://api.kraken.com/0/public/Ticker",
+                params={"pair": pairs}
             )
-            logger.info(f"CoinCap response status: {resp.status_code}")
-            logger.info(f"CoinCap response body: {resp.text[:500]}")
+            logger.info(f"Kraken response status: {resp.status_code}")
+            logger.info(f"Kraken response body: {resp.text[:800]}")
             if resp.status_code == 200:
-                data = resp.json().get("data", [])
+                data = resp.json().get("result", {})
                 found = {}
-                for item in data:
-                    symbol = ID_MAP.get(item["id"])
+                for key, val in data.items():
+                    symbol = KRAKEN_MAP.get(key)
                     if symbol:
-                        found[symbol] = Ticker(
-                            symbol=symbol,
-                            price=float(item.get("priceUsd", mock.get(symbol, 0))),
-                            change_percent_24h=float(item.get("changePercent24Hr", 0) or 0)
-                        )
+                        last_price = float(val["c"][0])
+                        open_price = float(val["o"])
+                        change_pct = ((last_price - open_price) / open_price * 100) if open_price else 0
+                        found[symbol] = Ticker(symbol=symbol, price=last_price, change_percent_24h=change_pct)
                 for symbol in mock.keys():
                     if symbol in found:
                         results.append(found[symbol])
