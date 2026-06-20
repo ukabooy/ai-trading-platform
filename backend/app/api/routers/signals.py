@@ -34,23 +34,32 @@ class SignalResponse(BaseModel):
     class Config:
         from_attributes = True
 
+KRAKEN_PAIR_MAP = {
+    "BTCUSDT": "XXBTZUSD", "ETHUSDT": "XETHZUSD", "SOLUSDT": "SOLUSD",
+    "ADAUSDT": "ADAUSD", "XRPUSDT": "XXRPZUSD"
+}
+
 
 async def get_price(symbol: str) -> float:
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.get(
-                "https://api.binance.com/api/v3/ticker/price",
-                params={"symbol": symbol}
-            )
-            if resp.status_code == 200:
-                return float(resp.json()["price"])
-    except Exception:
-        pass
     mock_prices = {
         "BTCUSDT": 67500, "ETHUSDT": 3800, "BNBUSDT": 420,
         "SOLUSDT": 180, "ADAUSDT": 0.65, "XRPUSDT": 0.72
     }
+    kraken_pair = symbol.replace("USDT", "USD")
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                "https://api.kraken.com/0/public/Ticker",
+                params={"pair": kraken_pair}
+            )
+            if resp.status_code == 200:
+                data = resp.json().get("result", {})
+                for key, val in data.items():
+                    return float(val["c"][0])
+    except Exception:
+        pass
     return mock_prices.get(symbol, 100.0)
+
 
 
 @router.post("/generate", response_model=SignalResponse)
