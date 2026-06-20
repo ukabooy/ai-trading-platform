@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 const API_URL = 'https://ai-trading-platform-1-c39c.onrender.com/api'
@@ -10,8 +10,40 @@ export default function Home() {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [user, setUser] = useState(null)
+  const [stats, setStats] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token')
+    if (savedToken) {
+      loadUser(savedToken)
+    }
+  }, [])
+
+  const loadUser = async (tok) => {
+    try {
+      const res = await axios.get(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      })
+      setUser(res.data)
+      setView('dashboard')
+      loadStats(tok)
+    } catch (err) {
+      localStorage.removeItem('token')
+    }
+  }
+
+  const loadStats = async (tok) => {
+    try {
+      const res = await axios.get(`${API_URL}/dashboard/stats`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      })
+      setStats(res.data)
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   const handleRegister = async (e) => {
     e.preventDefault()
@@ -25,6 +57,7 @@ export default function Home() {
       setUser(res.data.user)
       localStorage.setItem('token', res.data.access_token)
       setView('dashboard')
+      loadStats(res.data.access_token)
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed')
     }
@@ -40,6 +73,7 @@ export default function Home() {
       setUser(res.data.user)
       localStorage.setItem('token', res.data.access_token)
       setView('dashboard')
+      loadStats(res.data.access_token)
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
     }
@@ -48,6 +82,7 @@ export default function Home() {
 
   const handleLogout = () => {
     setUser(null)
+    setStats(null)
     localStorage.removeItem('token')
     setView('login')
   }
@@ -59,28 +94,32 @@ export default function Home() {
           <h1 style={styles.title}>🚀 Welcome, {user.username}!</h1>
           <p style={styles.subtitle}>AI Trading Platform Dashboard</p>
 
-          <div style={styles.statsGrid}>
-            <div style={styles.statBox}>
-              <p style={styles.statLabel}>Email</p>
-              <p style={styles.statValue}>{user.email}</p>
+          {stats && (
+            <div style={styles.statsGrid}>
+              <div style={styles.statBox}>
+                <p style={styles.statLabel}>Portfolio</p>
+                <p style={styles.statValue}>${stats.portfolio_value.toLocaleString()}</p>
+              </div>
+              <div style={styles.statBox}>
+                <p style={styles.statLabel}>Total P&L</p>
+                <p style={{...styles.statValue, color: stats.total_pnl >= 0 ? '#10b981' : '#ef4444'}}>
+                  {stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl.toFixed(2)}
+                </p>
+              </div>
+              <div style={styles.statBox}>
+                <p style={styles.statLabel}>Win Rate</p>
+                <p style={styles.statValue}>{stats.win_rate.toFixed(1)}%</p>
+              </div>
+              <div style={styles.statBox}>
+                <p style={styles.statLabel}>Open Trades</p>
+                <p style={styles.statValue}>{stats.open_trades}</p>
+              </div>
             </div>
-            <div style={styles.statBox}>
-              <p style={styles.statLabel}>Plan</p>
-              <p style={styles.statValue}>{user.subscription_plan}</p>
-            </div>
-            <div style={styles.statBox}>
-              <p style={styles.statLabel}>Max Trade</p>
-              <p style={styles.statValue}>${user.max_trade_amount}</p>
-            </div>
-            <div style={styles.statBox}>
-              <p style={styles.statLabel}>Risk Level</p>
-              <p style={styles.statValue}>{user.risk_level}/5</p>
-            </div>
-          </div>
+          )}
 
           <div style={styles.infoBox}>
-            <p>✅ Your account is live and connected to the database!</p>
-            <p>🔐 You're authenticated with a secure JWT token</p>
+            <p>✅ Account connected • {user.subscription_plan} plan</p>
+            <p>🔐 {user.totp_enabled ? '2FA enabled' : '2FA not enabled'}</p>
           </div>
 
           <a href="/markets" style={{...styles.signalsBtn, marginTop: '16px'}}>
@@ -88,6 +127,9 @@ export default function Home() {
           </a>
           <a href="/signals" style={{...styles.signalsBtn, marginTop: '10px'}}>
             ⚡ View AI Signals
+          </a>
+          <a href="/trades" style={{...styles.signalsBtn, marginTop: '10px'}}>
+            💼 My Trades
           </a>
           <a href="/settings" style={{...styles.signalsBtn, marginTop: '10px', background: 'transparent', border: '1px solid #2a2a3a', color: '#94a3b8'}}>
             ⚙️ Settings
@@ -277,7 +319,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
-    marginTop: '16px',
     textAlign: 'center',
     textDecoration: 'none',
     boxSizing: 'border-box',
