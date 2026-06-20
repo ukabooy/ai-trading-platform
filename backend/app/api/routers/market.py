@@ -5,7 +5,14 @@ import httpx
 
 router = APIRouter(prefix="/market", tags=["Market Data"])
 
-SYMBOLS = ["BTC", "ETH", "BNB", "SOL", "ADA", "XRP"]
+ID_MAP = {
+    "bitcoin": "BTCUSDT",
+    "ethereum": "ETHUSDT",
+    "binance-coin": "BNBUSDT",
+    "solana": "SOLUSDT",
+    "cardano": "ADAUSDT",
+    "xrp": "XRPUSDT",
+}
 
 
 class Ticker(BaseModel):
@@ -16,30 +23,36 @@ class Ticker(BaseModel):
 
 @router.get("/tickers", response_model=List[Ticker])
 async def get_tickers():
-    mock = {"BTC": 67500, "ETH": 3800, "BNB": 420, "SOL": 180, "ADA": 0.65, "XRP": 0.72}
+    mock = {"BTCUSDT": 67500, "ETHUSDT": 3800, "BNBUSDT": 420, "SOLUSDT": 180, "ADAUSDT": 0.65, "XRPUSDT": 0.72}
     results = []
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            syms = ",".join(SYMBOLS)
+            ids = ",".join(ID_MAP.keys())
             resp = await client.get(
-                "https://min-api.cryptocompare.com/data/pricemultifull",
-                params={"fsyms": syms, "tsyms": "USD"}
+                "https://api.coincap.io/v2/assets",
+                params={"ids": ids}
             )
             if resp.status_code == 200:
-                data = resp.json().get("RAW", {})
-                for symbol in SYMBOLS:
-                    if symbol in data and "USD" in data[symbol]:
-                        d = data[symbol]["USD"]
-                        results.append(Ticker(
-                            symbol=f"{symbol}USDT",
-                            price=float(d.get("PRICE", mock[symbol])),
-                            change_percent_24h=float(d.get("CHANGEPCT24HOUR", 0))
-                        ))
+                data = resp.json().get("data", [])
+                found = {}
+                for item in data:
+                    symbol = ID_MAP.get(item["id"])
+                    if symbol:
+                        found[symbol] = Ticker(
+                            symbol=symbol,
+                            price=float(item.get("priceUsd", mock.get(symbol, 0))),
+                            change_percent_24h=float(item.get("changePercent24Hr", 0) or 0)
+                        )
+                for symbol in mock.keys():
+                    if symbol in found:
+                        results.append(found[symbol])
+                    else:
+                        results.append(Ticker(symbol=symbol, price=mock[symbol], change_percent_24h=0))
     except Exception:
         pass
 
     if not results:
-        results = [Ticker(symbol=f"{s}USDT", price=p, change_percent_24h=0) for s, p in mock.items()]
+        results = [Ticker(symbol=s, price=p, change_percent_24h=0) for s, p in mock.items()]
 
     return results
