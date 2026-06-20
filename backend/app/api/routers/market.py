@@ -2,7 +2,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
 import httpx
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/market", tags=["Market Data"])
 
 ID_MAP = {
@@ -29,10 +31,13 @@ async def get_tickers():
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             ids = ",".join(ID_MAP.keys())
+            logger.info(f"Fetching CoinCap with ids={ids}")
             resp = await client.get(
                 "https://api.coincap.io/v2/assets",
                 params={"ids": ids}
             )
+            logger.info(f"CoinCap response status: {resp.status_code}")
+            logger.info(f"CoinCap response body: {resp.text[:500]}")
             if resp.status_code == 200:
                 data = resp.json().get("data", [])
                 found = {}
@@ -49,8 +54,8 @@ async def get_tickers():
                         results.append(found[symbol])
                     else:
                         results.append(Ticker(symbol=symbol, price=mock[symbol], change_percent_24h=0))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Market fetch failed: {repr(e)}")
 
     if not results:
         results = [Ticker(symbol=s, price=p, change_percent_24h=0) for s, p in mock.items()]
