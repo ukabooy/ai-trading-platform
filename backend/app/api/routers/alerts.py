@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import uuid
+import httpx
 
 from app.core.database import get_db, Base
 from app.api.routers.auth import get_current_user
@@ -80,6 +81,57 @@ async def list_alerts(
         .order_by(desc(PriceAlert.created_at))
     )
     return result.scalars().all()
+
+
+@router.get("/check", response_model=List[AlertResponse])
+async def check_alerts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Check all active alerts against current prices and mark triggered ones"""
+    result = await db.execute(
+        select(PriceAlert).where(
+            PriceAlert.user_id == current_user.id,
+            PriceAlert.is_active == True,
+            PriceAlert.is_triggered == False
+        )
+    )
+    alerts = result.scalars().all()
+    if not alerts:
+        return []
+
+    triggered = []
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            symbols = list(set(a.symbol for a in alerts))
+            pairs = ",".join(s.replace("USDT", "USD") for s in symbols)
+            resp = await client.get(
+                "https://api.kraken.com/0/public/Ticker",
+                params={"pair": pairs}
+            )
+            prices = {}
+            if resp.status_code == 200:
+                data = resp.json().get("result", {})
+                for key, val in data.items():
+                    price = float(val["c"][0])
+                    for s in symbols:
+                        if s.replace("USDT", "") in key:
+                            prices[s] = price
+
+            for alert in alerts:
+                current_price = prices.get(alert.symbol)
+                if current_price:
+                    if alert.direction == "above" and current_price >= alert.target_price:
+                        alert.is_triggered = True
+                        triggered.append(alert)
+                    elif alert.direction == "below" and current_price <= alert.target_price:
+                        alert.is_triggered = True
+                        triggered.append(alert)
+            await db.commit()
+    except Exception:
+        pass
+
+    return triggered
 
 
 @router.delete("/{alert_id}", status_code=204)
