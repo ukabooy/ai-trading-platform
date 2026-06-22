@@ -134,6 +134,10 @@ export default function Home() {
           <a href="/alerts" style={{...styles.signalsBtn, marginTop: '10px'}}>
             🔔 Price Alerts
           </a>
+          <a href="/leaderboard" style={{...styles.signalsBtn, marginTop: '10px'}}>
+            🏆 Leaderboard
+          </a>
+          </a>
           <a href="/settings" style={{...styles.signalsBtn, marginTop: '10px', background: 'transparent', border: '1px solid #2a2a3a', color: '#94a3b8'}}>
             ⚙️ Settings
           </a>
