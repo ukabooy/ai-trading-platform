@@ -3,10 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, select, desc
 from sqlalchemy.sql import func
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 import uuid
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db, Base
 from app.api.routers.auth import get_current_user
@@ -96,42 +99,47 @@ async def check_alerts(
         )
     )
     alerts = result.scalars().all()
+    logger.info(f"Checking {len(alerts)} active alerts")
     if not alerts:
         return []
 
     triggered = []
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
-            symbols = list(set(a.symbol for a in alerts))
-            pairs = ",".join(s.replace("USDT", "USD") for s in symbols)
             resp = await client.get(
                 "https://api.kraken.com/0/public/Ticker",
-                params={"pair": pairs}
+                params={"pair": "XBTUSD"}
             )
+            logger.info(f"Kraken check status: {resp.status_code}")
+            logger.info(f"Kraken check body: {resp.text[:300]}")
+
             prices = {}
             if resp.status_code == 200:
                 data = resp.json().get("result", {})
                 for key, val in data.items():
                     price = float(val["c"][0])
-                    for s in symbols:
-                        base = s.replace("USDT", "")
-                        if base in key.upper():
-                            prices[s] = price
-                            break
+                    logger.info(f"Got price: {key} = {price}")
+                    prices["BTCUSDT"] = price
+
+            logger.info(f"Prices dict: {prices}")
 
             for alert in alerts:
                 current_price = prices.get(alert.symbol)
+                logger.info(f"Alert: {alert.symbol} {alert.direction} {alert.target_price}, current={current_price}")
                 if current_price:
-                    if alert.direction == "above" and current_price >= alert.target_price:
+                    if alert.direction == "below" and current_price <= alert.target_price:
+                        logger.info(f"TRIGGERED: {alert.symbol} {current_price} <= {alert.target_price}")
                         alert.is_triggered = True
                         triggered.append(alert)
-                    elif alert.direction == "below" and current_price <= alert.target_price:
+                    elif alert.direction == "above" and current_price >= alert.target_price:
+                        logger.info(f"TRIGGERED: {alert.symbol} {current_price} >= {alert.target_price}")
                         alert.is_triggered = True
                         triggered.append(alert)
             await db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Alert check failed: {repr(e)}")
 
+    logger.info(f"Triggered {len(triggered)} alerts")
     return triggered
 
 
@@ -142,7 +150,10 @@ async def delete_alert(
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(PriceAlert).where(PriceAlert.id == alert_id, PriceAlert.user_id == current_user.id)
+        select(PriceAlert).where(
+            PriceAlert.id == alert_id,
+            PriceAlert.user_id == current_user.id
+        )
     )
     alert = result.scalar_one_or_none()
     if not alert:
