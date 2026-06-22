@@ -11,6 +11,33 @@ export default function Alerts() {
   const [direction, setDirection] = useState('above')
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [triggeredMsg, setTriggeredMsg] = useState('')
+
+  const loadAlerts = async (tok) => {
+    try {
+      const res = await axios.get(`${API_URL}/alerts`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      })
+      setAlerts(res.data)
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
+  const checkAlerts = async (tok) => {
+    try {
+      const res = await axios.get(`${API_URL}/alerts/check`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      })
+      if (res.data && res.data.length > 0) {
+        const names = res.data.map(a => `${a.symbol} ${a.direction} $${a.target_price}`).join(', ')
+        setTriggeredMsg('Alert triggered: ' + names)
+        loadAlerts(tok)
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token')
@@ -25,17 +52,6 @@ export default function Alerts() {
       return () => clearInterval(interval)
     }
   }, [])
-
-  const loadAlerts = async (tok) => {
-    try {
-      const res = await axios.get(`${API_URL}/alerts`, {
-        headers: { Authorization: `Bearer ${tok}` }
-      })
-      setAlerts(res.data)
-    } catch (err) {
-      console.log(err)
-    }
-  }
 
   const createAlert = async () => {
     if (!targetPrice) {
@@ -73,7 +89,9 @@ export default function Alerts() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <p style={{ color: '#f1f5f9' }}>Please <a href="/" style={{ color: '#6366f1' }}>login first</a></p>
+          <p style={{ color: '#f1f5f9' }}>
+            Please <a href="/" style={{ color: '#6366f1' }}>login first</a>
+          </p>
         </div>
       </div>
     )
@@ -82,17 +100,32 @@ export default function Alerts() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>🔔 Price Alerts</h1>
-        <a href="/" style={styles.backLink}>← Back to Dashboard</a>
+        <h1 style={styles.title}>Price Alerts</h1>
+        <a href="/" style={styles.backLink}>Back to Dashboard</a>
+
+        {triggeredMsg && (
+          <div style={styles.triggeredBox}>
+            <p style={{ margin: 0 }}>{triggeredMsg}</p>
+          </div>
+        )}
 
         <div style={styles.form}>
-          <select value={symbol} onChange={(e) => setSymbol(e.target.value)} style={styles.select}>
+          <select
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value)}
+            style={styles.select}
+          >
             <option value="BTCUSDT">BTC/USDT</option>
             <option value="ETHUSDT">ETH/USDT</option>
-            <option value="BNBUSDT">BNB/USDT</option>
             <option value="SOLUSDT">SOL/USDT</option>
+            <option value="ADAUSDT">ADA/USDT</option>
+            <option value="XRPUSDT">XRP/USDT</option>
           </select>
-          <select value={direction} onChange={(e) => setDirection(e.target.value)} style={styles.select}>
+          <select
+            value={direction}
+            onChange={(e) => setDirection(e.target.value)}
+            style={styles.select}
+          >
             <option value="above">Goes above</option>
             <option value="below">Goes below</option>
           </select>
@@ -103,8 +136,12 @@ export default function Alerts() {
             onChange={(e) => setTargetPrice(e.target.value)}
             style={styles.input}
           />
-          <button onClick={createAlert} style={styles.button} disabled={creating}>
-            {creating ? 'Creating...' : '🔔 Create Alert'}
+          <button
+            onClick={createAlert}
+            style={styles.button}
+            disabled={creating}
+          >
+            {creating ? 'Creating...' : 'Create Alert'}
           </button>
         </div>
 
@@ -115,14 +152,37 @@ export default function Alerts() {
             <p style={styles.empty}>No alerts yet. Create one above!</p>
           )}
           {alerts.map((alert) => (
-            <div key={alert.id} style={styles.alertCard}>
+            <div
+              key={alert.id}
+              style={{
+                ...styles.alertCard,
+                opacity: alert.is_triggered ? 0.6 : 1,
+                borderColor: alert.is_triggered
+                  ? 'rgba(16,185,129,0.4)'
+                  : '#2a2a3a',
+              }}
+            >
               <div>
-                <p style={styles.alertSymbol}>{alert.symbol}</p>
+                <p style={styles.alertSymbol}>
+                  {alert.symbol}{' '}
+                  {alert.is_triggered && (
+                    <span style={{ color: '#10b981', fontSize: '11px' }}>
+                      TRIGGERED
+                    </span>
+                  )}
+                </p>
                 <p style={styles.alertCondition}>
-                  Alert when price goes <strong>{alert.direction}</strong> ${alert.target_price.toLocaleString()}
+                  Alert when price goes{' '}
+                  <strong>{alert.direction}</strong> $
+                  {alert.target_price.toLocaleString()}
                 </p>
               </div>
-              <button onClick={() => deleteAlert(alert.id)} style={styles.deleteBtn}>✕</button>
+              <button
+                onClick={() => deleteAlert(alert.id)}
+                style={styles.deleteBtn}
+              >
+                X
+              </button>
             </div>
           ))}
         </div>
@@ -133,39 +193,99 @@ export default function Alerts() {
 
 const styles = {
   container: {
-    minHeight: '100vh', background: '#0a0a0f', display: 'flex', justifyContent: 'center',
-    fontFamily: 'system-ui, sans-serif', padding: '20px',
+    minHeight: '100vh',
+    background: '#0a0a0f',
+    display: 'flex',
+    justifyContent: 'center',
+    fontFamily: 'system-ui, sans-serif',
+    padding: '20px',
   },
   card: {
-    background: '#111118', border: '1px solid #2a2a3a', borderRadius: '16px',
-    padding: '24px', width: '100%', maxWidth: '420px', height: 'fit-content',
+    background: '#111118',
+    border: '1px solid #2a2a3a',
+    borderRadius: '16px',
+    padding: '24px',
+    width: '100%',
+    maxWidth: '420px',
+    height: 'fit-content',
   },
   title: { color: '#f1f5f9', fontSize: '22px', margin: '0 0 8px 0' },
-  backLink: { color: '#6366f1', fontSize: '13px', textDecoration: 'none', display: 'block', marginBottom: '20px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' },
+  backLink: {
+    color: '#6366f1',
+    fontSize: '13px',
+    textDecoration: 'none',
+    display: 'block',
+    marginBottom: '20px',
+  },
+  triggeredBox: {
+    background: 'rgba(16,185,129,0.1)',
+    border: '1px solid rgba(16,185,129,0.3)',
+    borderRadius: '8px',
+    padding: '12px',
+    color: '#10b981',
+    fontSize: '13px',
+    marginBottom: '16px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginBottom: '16px',
+  },
   select: {
-    padding: '10px', background: '#1a1a24', border: '1px solid #2a2a3a',
-    borderRadius: '8px', color: '#f1f5f9', fontSize: '14px',
+    padding: '10px',
+    background: '#1a1a24',
+    border: '1px solid #2a2a3a',
+    borderRadius: '8px',
+    color: '#f1f5f9',
+    fontSize: '14px',
   },
   input: {
-    padding: '10px', background: '#1a1a24', border: '1px solid #2a2a3a',
-    borderRadius: '8px', color: '#f1f5f9', fontSize: '14px', boxSizing: 'border-box',
+    padding: '10px',
+    background: '#1a1a24',
+    border: '1px solid #2a2a3a',
+    borderRadius: '8px',
+    color: '#f1f5f9',
+    fontSize: '14px',
+    boxSizing: 'border-box',
   },
   button: {
-    padding: '12px', background: '#6366f1', color: 'white', border: 'none',
-    borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+    padding: '12px',
+    background: '#6366f1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   error: { color: '#ef4444', fontSize: '13px', marginBottom: '12px' },
   empty: { color: '#6b7280', textAlign: 'center', padding: '20px' },
   list: { display: 'flex', flexDirection: 'column', gap: '10px' },
   alertCard: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    background: '#1a1a24', border: '1px solid #2a2a3a', borderRadius: '10px', padding: '14px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#1a1a24',
+    border: '1px solid #2a2a3a',
+    borderRadius: '10px',
+    padding: '14px',
   },
-  alertSymbol: { color: '#f1f5f9', fontWeight: '700', fontSize: '14px', margin: '0 0 4px 0' },
+  alertSymbol: {
+    color: '#f1f5f9',
+    fontWeight: '700',
+    fontSize: '14px',
+    margin: '0 0 4px 0',
+  },
   alertCondition: { color: '#94a3b8', fontSize: '12px', margin: 0 },
   deleteBtn: {
-    background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
-    borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px',
+    background: 'rgba(239,68,68,0.1)',
+    color: '#ef4444',
+    border: '1px solid rgba(239,68,68,0.3)',
+    borderRadius: '6px',
+    width: '28px',
+    height: '28px',
+    cursor: 'pointer',
+    fontSize: '14px',
   },
 }
