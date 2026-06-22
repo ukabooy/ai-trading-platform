@@ -17,6 +17,12 @@ export default function Alerts() {
     if (savedToken) {
       setToken(savedToken)
       loadAlerts(savedToken)
+      checkAlerts(savedToken)
+      const interval = setInterval(() => {
+        checkAlerts(savedToken)
+        loadAlerts(savedToken)
+      }, 15000)
+      return () => clearInterval(interval)
     }
   }, [])
 
