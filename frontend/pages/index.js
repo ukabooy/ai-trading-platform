@@ -91,18 +91,23 @@ export default function Home() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <h1 style={styles.title}>🚀 Welcome, {user.username}!</h1>
+          <h1 style={styles.title}>Welcome, {user.username}!</h1>
           <p style={styles.subtitle}>AI Trading Platform Dashboard</p>
 
           {stats && (
             <div style={styles.statsGrid}>
               <div style={styles.statBox}>
                 <p style={styles.statLabel}>Portfolio</p>
-                <p style={styles.statValue}>${stats.portfolio_value.toLocaleString()}</p>
+                <p style={styles.statValue}>
+                  ${stats.portfolio_value.toLocaleString()}
+                </p>
               </div>
               <div style={styles.statBox}>
                 <p style={styles.statLabel}>Total P&L</p>
-                <p style={{...styles.statValue, color: stats.total_pnl >= 0 ? '#10b981' : '#ef4444'}}>
+                <p style={{
+                  ...styles.statValue,
+                  color: stats.total_pnl >= 0 ? '#10b981' : '#ef4444'
+                }}>
                   {stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl.toFixed(2)}
                 </p>
               </div>
@@ -118,27 +123,32 @@ export default function Home() {
           )}
 
           <div style={styles.infoBox}>
-            <p>✅ Account connected • {user.subscription_plan} plan</p>
-            <p>🔐 {user.totp_enabled ? '2FA enabled' : '2FA not enabled'}</p>
+            <p>Account connected • {user.subscription_plan} plan</p>
+            <p>{user.totp_enabled ? '2FA enabled' : '2FA not enabled'}</p>
           </div>
 
-          <a href="/markets" style={{...styles.signalsBtn, marginTop: '16px'}}>
-            📈 View Live Markets
+          <a href="/markets" style={{...styles.navBtn, marginTop: '16px'}}>
+            📈 Live Markets
           </a>
-          <a href="/signals" style={{...styles.signalsBtn, marginTop: '10px'}}>
-            ⚡ View AI Signals
+          <a href="/signals" style={{...styles.navBtn, marginTop: '10px'}}>
+            ⚡ AI Signals
           </a>
-          <a href="/trades" style={{...styles.signalsBtn, marginTop: '10px'}}>
+          <a href="/trades" style={{...styles.navBtn, marginTop: '10px'}}>
             💼 My Trades
           </a>
-          <a href="/alerts" style={{...styles.signalsBtn, marginTop: '10px'}}>
+          <a href="/alerts" style={{...styles.navBtn, marginTop: '10px'}}>
             🔔 Price Alerts
           </a>
-          <a href="/leaderboard" style={{...styles.signalsBtn, marginTop: '10px'}}>
+          <a href="/leaderboard" style={{...styles.navBtn, marginTop: '10px'}}>
             🏆 Leaderboard
           </a>
-          </a>
-          <a href="/settings" style={{...styles.signalsBtn, marginTop: '10px', background: 'transparent', border: '1px solid #2a2a3a', color: '#94a3b8'}}>
+          <a href="/settings" style={{
+            ...styles.navBtn,
+            marginTop: '10px',
+            background: 'transparent',
+            border: '1px solid #2a2a3a',
+            color: '#94a3b8'
+          }}>
             ⚙️ Settings
           </a>
 
@@ -153,7 +163,7 @@ export default function Home() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>🤖 AI Trading Platform</h1>
+        <h1 style={styles.title}>AI Trading Platform</h1>
         <p style={styles.subtitle}>
           {view === 'login' ? 'Sign in to your account' : 'Create your account'}
         </p>
@@ -314,8 +324,9 @@ const styles = {
     color: '#a5b4fc',
     fontSize: '13px',
     lineHeight: '1.8',
+    marginBottom: '4px',
   },
-  signalsBtn: {
+  navBtn: {
     display: 'block',
     width: '100%',
     padding: '12px',
