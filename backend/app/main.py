@@ -13,6 +13,7 @@ from app.api.routers.settings import router as settings_router
 from app.api.routers.twofa import router as twofa_router
 from app.api.routers.dashboard_stats import router as dashboard_router
 from app.api.routers.alerts import router as alerts_router
+from app.api.routers.leaderboard import router as leaderboard_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ app.include_router(settings_router, prefix="/api")
 app.include_router(twofa_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
+app.include_router(leaderboard_router, prefix="/api")
 
 
 @app.get("/api/health")
