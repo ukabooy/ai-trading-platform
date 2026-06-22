@@ -114,8 +114,10 @@ async def check_alerts(
                 for key, val in data.items():
                     price = float(val["c"][0])
                     for s in symbols:
-                        if s.replace("USDT", "") in key:
+                        base = s.replace("USDT", "")
+                        if base in key.upper():
                             prices[s] = price
+                            break
 
             for alert in alerts:
                 current_price = prices.get(alert.symbol)
