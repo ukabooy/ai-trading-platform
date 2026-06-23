@@ -15,6 +15,7 @@ from app.api.routers.dashboard_stats import router as dashboard_router
 from app.api.routers.alerts import router as alerts_router
 from app.api.routers.leaderboard import router as leaderboard_router
 from app.api.routers.subscription import router as subscription_router
+from app.api.routers.admin import router as admin_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
 app.include_router(leaderboard_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/api/health")
