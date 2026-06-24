@@ -154,6 +154,17 @@ export default function Home() {
           }}>
             ⚙️ Settings
           </a>
+          {user.role === 'ADMIN' && (
+            <a href="/admin" style={{
+              ...styles.navBtn,
+              marginTop: '10px',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#ef4444'
+            }}>
+              🛡️ Admin Panel
+            </a>
+          )}
 
           <button onClick={handleLogout} style={styles.logoutBtn}>
             Logout
