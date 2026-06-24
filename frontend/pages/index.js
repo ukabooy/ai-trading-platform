@@ -142,6 +142,9 @@ export default function Home() {
           <a href="/leaderboard" style={{...styles.navBtn, marginTop: '10px'}}>
             🏆 Leaderboard
           </a>
+          <a href="/copy-trading" style={{...styles.navBtn, marginTop: '10px'}}>
+            👥 Copy Trading
+          </a>
           <a href="/pricing" style={{...styles.navBtn, marginTop: '10px', background: 'linear-gradient(135deg, #6366f1, #f59e0b)'}}>
             💎 Upgrade Plan
           </a>
