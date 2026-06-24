@@ -154,7 +154,7 @@ export default function Home() {
           }}>
             ⚙️ Settings
           </a>
-          {user.role === 'ADMIN' && (
+          {(user.role === 'ADMIN' || user.role === 'admin') && (
             <a href="/admin" style={{
               ...styles.navBtn,
               marginTop: '10px',
