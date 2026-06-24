@@ -145,6 +145,9 @@ export default function Home() {
           <a href="/copy-trading" style={{...styles.navBtn, marginTop: '10px'}}>
             👥 Copy Trading
           </a>
+          <a href="/referral" style={{...styles.navBtn, marginTop: '10px'}}>
+            🎁 Referral Program
+          </a>
           <a href="/pricing" style={{...styles.navBtn, marginTop: '10px', background: 'linear-gradient(135deg, #6366f1, #f59e0b)'}}>
             💎 Upgrade Plan
           </a>
