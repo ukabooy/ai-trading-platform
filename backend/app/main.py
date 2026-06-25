@@ -20,6 +20,7 @@ from app.api.routers.copy_trading import router as copy_router
 from app.api.routers.referral import router as referral_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.watchlist import router as watchlist_router
+from app.api.routers.portfolio import router as portfolio_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ app.include_router(copy_router, prefix="/api")
 app.include_router(referral_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(watchlist_router, prefix="/api")
+app.include_router(portfolio_router, prefix="/api")
 
 
 @app.get("/api/health")
