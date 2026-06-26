@@ -157,6 +157,9 @@ export default function Home() {
           <a href="/portfolio" style={{...styles.navBtn, marginTop: '10px'}}>
             💼 Portfolio
           </a>
+          <a href="/chart" style={{...styles.navBtn, marginTop: '10px'}}>
+            📊 Price Charts
+          </a>
           <a href="/pricing" style={{...styles.navBtn, marginTop: '10px', background: 'linear-gradient(135deg, #6366f1, #f59e0b)'}}>
             💎 Upgrade Plan
           </a>
