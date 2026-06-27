@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { useRouter } from 'next/router'
 
 const API_URL = 'https://ai-trading-platform-1-c39c.onrender.com/api'
 
@@ -9,6 +10,7 @@ export default function Pricing() {
   const [upgrading, setUpgrading] = useState(null)
   const [message, setMessage] = useState('')
   const [token, setToken] = useState('')
+  const router = useRouter()
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token')
@@ -16,7 +18,14 @@ export default function Pricing() {
       setToken(savedToken)
       loadPlans(savedToken)
     }
-  }, [])
+
+    // Handle Stripe redirect
+    if (router.query.success) {
+      setMessage('Payment successful! Your plan has been upgraded.')
+    } else if (router.query.cancelled) {
+      setMessage('Payment cancelled.')
+    }
+  }, [router.query])
 
   const loadPlans = async (tok) => {
     try {
@@ -35,12 +44,19 @@ export default function Pricing() {
     setMessage('')
     try {
       const res = await axios.post(
-        `${API_URL}/subscription/upgrade`,
+        `${API_URL}/subscription/create-checkout`,
         { plan: planId },
         { headers: { Authorization: `Bearer ${token}` } }
       )
-      setMessage(res.data.message)
-      loadPlans(token)
+
+      if (res.data.checkout_url) {
+        // Redirect to Stripe
+        window.location.href = res.data.checkout_url
+      } else {
+        // Demo mode
+        setMessage(res.data.message || 'Plan upgraded successfully!')
+        loadPlans(token)
+      }
     } catch (err) {
       setMessage(err.response?.data?.detail || 'Failed to upgrade')
     }
@@ -73,7 +89,16 @@ export default function Pricing() {
         <p style={styles.subtitle}>Choose the plan that fits your trading style</p>
 
         {message && (
-          <div style={styles.messageBox}>
+          <div style={{
+            ...styles.messageBox,
+            background: message.includes('cancelled')
+              ? 'rgba(239,68,68,0.1)'
+              : 'rgba(16,185,129,0.1)',
+            borderColor: message.includes('cancelled')
+              ? 'rgba(239,68,68,0.3)'
+              : 'rgba(16,185,129,0.3)',
+            color: message.includes('cancelled') ? '#ef4444' : '#10b981',
+          }}>
             <p style={{ margin: 0 }}>{message}</p>
           </div>
         )}
@@ -98,9 +123,7 @@ export default function Pricing() {
                 <div style={styles.planHeader}>
                   <h2 style={styles.planName}>{plan.name}</h2>
                   <div style={styles.priceRow}>
-                    <span style={styles.price}>
-                      ${plan.price}
-                    </span>
+                    <span style={styles.price}>${plan.price}</span>
                     <span style={styles.period}>/month</span>
                   </div>
                 </div>
@@ -115,9 +138,7 @@ export default function Pricing() {
                 </ul>
 
                 {plan.is_current ? (
-                  <div style={styles.currentBadge}>
-                    Current Plan
-                  </div>
+                  <div style={styles.currentBadge}>Current Plan</div>
                 ) : (
                   <button
                     onClick={() => upgrade(plan.id)}
@@ -132,9 +153,11 @@ export default function Pricing() {
                     }}
                   >
                     {upgrading === plan.id
-                      ? 'Upgrading...'
+                      ? 'Processing...'
                       : plan.price === 0
                       ? 'Downgrade'
+                      : plan.stripe_price_id
+                      ? 'Pay with Card'
                       : 'Upgrade Now'}
                   </button>
                 )}
@@ -143,9 +166,15 @@ export default function Pricing() {
           </div>
         )}
 
-        <p style={styles.note}>
-          Note: This is a demo platform. No real payments are processed.
-        </p>
+        <div style={styles.stripeNote}>
+          <p style={styles.noteText}>
+            🔒 Payments powered by Stripe — secure & encrypted
+          </p>
+          <p style={styles.noteSubText}>
+            Add your Stripe keys in Render environment variables to enable real payments.
+            Until then, upgrades work in demo mode.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -153,137 +182,55 @@ export default function Pricing() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
-    background: '#0a0a0f',
-    display: 'flex',
-    justifyContent: 'center',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '20px',
+    minHeight: '100vh', background: '#0a0a0f', display: 'flex',
+    justifyContent: 'center', fontFamily: 'system-ui, sans-serif', padding: '20px',
   },
-  wrapper: {
-    width: '100%',
-    maxWidth: '600px',
-    height: 'fit-content',
-  },
-  title: {
-    color: '#f1f5f9',
-    fontSize: '24px',
-    margin: '0 0 8px 0',
-    textAlign: 'center',
-  },
+  wrapper: { width: '100%', maxWidth: '600px', height: 'fit-content' },
+  title: { color: '#f1f5f9', fontSize: '24px', margin: '0 0 8px 0', textAlign: 'center' },
   backLink: {
-    color: '#6366f1',
-    fontSize: '13px',
-    textDecoration: 'none',
-    display: 'block',
-    marginBottom: '8px',
-    textAlign: 'center',
+    color: '#6366f1', fontSize: '13px', textDecoration: 'none',
+    display: 'block', marginBottom: '8px', textAlign: 'center',
   },
-  subtitle: {
-    color: '#6b7280',
-    fontSize: '14px',
-    textAlign: 'center',
-    margin: '0 0 24px 0',
-  },
+  subtitle: { color: '#6b7280', fontSize: '14px', textAlign: 'center', margin: '0 0 24px 0' },
   messageBox: {
-    background: 'rgba(16,185,129,0.1)',
-    border: '1px solid rgba(16,185,129,0.3)',
-    borderRadius: '8px',
-    padding: '12px',
-    color: '#10b981',
-    fontSize: '13px',
-    marginBottom: '16px',
-    textAlign: 'center',
+    border: '1px solid', borderRadius: '8px', padding: '12px',
+    fontSize: '13px', marginBottom: '16px', textAlign: 'center',
   },
-  plansGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
+  plansGrid: { display: 'flex', flexDirection: 'column', gap: '16px' },
   planCard: {
-    background: '#111118',
-    border: '1px solid #2a2a3a',
-    borderRadius: '16px',
-    padding: '24px',
+    background: '#111118', border: '1px solid #2a2a3a',
+    borderRadius: '16px', padding: '24px',
   },
   popularBadge: {
-    position: 'absolute',
-    top: '-12px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#f59e0b',
-    color: '#000',
-    fontSize: '10px',
-    fontWeight: '800',
-    padding: '4px 12px',
-    borderRadius: '20px',
-    letterSpacing: '1px',
+    position: 'absolute', top: '-12px', left: '50%',
+    transform: 'translateX(-50%)', background: '#f59e0b',
+    color: '#000', fontSize: '10px', fontWeight: '800',
+    padding: '4px 12px', borderRadius: '20px', letterSpacing: '1px',
   },
-  planHeader: {
-    marginBottom: '16px',
-  },
-  planName: {
-    color: '#f1f5f9',
-    fontSize: '20px',
-    fontWeight: '700',
-    margin: '0 0 8px 0',
-  },
-  priceRow: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: '4px',
-  },
-  price: {
-    color: '#f1f5f9',
-    fontSize: '32px',
-    fontWeight: '800',
-  },
-  period: {
-    color: '#6b7280',
-    fontSize: '14px',
-  },
+  planHeader: { marginBottom: '16px' },
+  planName: { color: '#f1f5f9', fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0' },
+  priceRow: { display: 'flex', alignItems: 'baseline', gap: '4px' },
+  price: { color: '#f1f5f9', fontSize: '32px', fontWeight: '800' },
+  period: { color: '#6b7280', fontSize: '14px' },
   featureList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: '0 0 20px 0',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    listStyle: 'none', padding: 0, margin: '0 0 20px 0',
+    display: 'flex', flexDirection: 'column', gap: '8px',
   },
-  featureItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  featureText: {
-    color: '#94a3b8',
-    fontSize: '13px',
-  },
+  featureItem: { display: 'flex', alignItems: 'center', gap: '8px' },
+  featureText: { color: '#94a3b8', fontSize: '13px' },
   currentBadge: {
-    width: '100%',
-    padding: '12px',
-    background: 'rgba(16,185,129,0.1)',
-    border: '1px solid rgba(16,185,129,0.3)',
-    borderRadius: '8px',
-    color: '#10b981',
-    fontSize: '14px',
-    fontWeight: '600',
-    textAlign: 'center',
+    width: '100%', padding: '12px', background: 'rgba(16,185,129,0.1)',
+    border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px',
+    color: '#10b981', fontSize: '14px', fontWeight: '600', textAlign: 'center',
   },
   upgradeBtn: {
-    width: '100%',
-    padding: '12px',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
+    width: '100%', padding: '12px', color: 'white', border: 'none',
+    borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
   },
-  note: {
-    color: '#4b5563',
-    fontSize: '12px',
-    textAlign: 'center',
-    marginTop: '24px',
+  stripeNote: {
+    marginTop: '24px', padding: '16px', background: '#111118',
+    border: '1px solid #2a2a3a', borderRadius: '12px', textAlign: 'center',
   },
+  noteText: { color: '#6b7280', fontSize: '13px', margin: '0 0 6px 0' },
+  noteSubText: { color: '#4b5563', fontSize: '11px', margin: 0, lineHeight: '1.6' },
 }
