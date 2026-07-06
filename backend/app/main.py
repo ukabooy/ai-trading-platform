@@ -70,6 +70,7 @@ app.include_router(watchlist_router, prefix="/api")
 app.include_router(portfolio_router, prefix="/api")
 app.include_router(password_router, prefix="/api")
 
+
 @app.get("/api/health")
 async def health():
     return {
