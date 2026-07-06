@@ -241,7 +241,14 @@ export default function Home() {
             {loading ? 'Please wait...' : view === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
-
+{view === 'login' && (
+          <p style={{textAlign: 'center', marginTop: '12px'}}>
+            <a href="/forgot-password" style={{color: '#6b7280', fontSize: '13px'}}>
+              Forgot password?
+            </a>
+          </p>
+        )}
+          
         <p style={styles.switchText}>
           {view === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <span
