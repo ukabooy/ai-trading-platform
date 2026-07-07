@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, timedelta
 import secrets
 
 from app.core.database import get_db
@@ -33,22 +32,28 @@ async def forgot_password(
     user = result.scalar_one_or_none()
 
     if not user:
-        # Don't reveal if email exists
         return {"message": "If that email exists, a reset code has been sent."}
 
-    # Generate 6-digit reset code
     reset_code = str(secrets.randbelow(900000) + 100000)
-
-    # Store in Redis for 15 minutes
     await cache_set(f"reset:{data.email}", reset_code, expire=900)
 
-    # In production send via email
-    # For now return it directly (demo mode)
-    return {
+    # Send real email if configured
+    email_sent = False
+    try:
+        from app.services.email_service import send_password_reset_email
+        email_sent = await send_password_reset_email(data.email, reset_code)
+    except Exception:
+        pass
+
+    response = {
         "message": "Reset code generated successfully.",
-        "reset_code": reset_code,
-        "note": "In production this would be sent to your email. For demo, use the code above."
+        "note": "In production this would be sent to your email."
     }
+
+    if not email_sent:
+        response["reset_code"] = reset_code
+
+    return response
 
 
 @router.post("/reset")
@@ -56,8 +61,6 @@ async def reset_password(
     data: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    # Find user by token
-    # Token format: email:code
     try:
         email, code = data.token.split(":")
     except ValueError:
