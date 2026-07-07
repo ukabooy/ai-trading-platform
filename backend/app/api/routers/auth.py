@@ -97,6 +97,14 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Send welcome email
+    try:
+        from app.services.email_service import send_welcome_email
+        await send_welcome_email(user.email, user.username)
+    except Exception:
+        pass
+
     return user
 
 
